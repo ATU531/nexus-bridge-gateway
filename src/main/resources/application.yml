@@ -1,0 +1,33 @@
+spring:
+  application:
+    name: nexus-bridge-gateway
+  webflux:
+    base-path: /api
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.nexus.bridgegateway: DEBUG
+    org.springframework.web: DEBUG
+    org.web3j: DEBUG
+    org.web3j.protocol: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+web3:
+  rpc-url: https://rpc.ankr.com/eth/APIKEY
+  timeout: 10000
+  backup-rpc-urls:
+    - https://eth.llamarpc.com
+    - https://cloudflare-eth.com
