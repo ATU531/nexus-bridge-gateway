@@ -49,7 +49,7 @@
 #### 请求示例
 
 ```bash
-curl -X GET "http://localhost:8080/api/query/balance/0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"
+curl -X GET "http://localhost:8080/api/query/balance/0xd8da6bf26964af9d7eed9e03e53415d37aa96045"
 ```
 
 #### 响应示例

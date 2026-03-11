@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Mono;
 
 @RestController
 @RequestMapping("/query")
@@ -20,14 +21,14 @@ public class QueryController {
     }
 
     @GetMapping("/balance/{address}")
-    public ApiResponse<BalanceResponse> getEtherBalance(@PathVariable String address) {
-        BalanceResponse balanceResponse = web3QueryService.getEtherBalance(address);
-        return ApiResponse.success(balanceResponse);
+    public Mono<ApiResponse<BalanceResponse>> getEtherBalance(@PathVariable String address) {
+        return web3QueryService.getEtherBalance(address)
+                .map(ApiResponse::success);
     }
 
     @GetMapping("/block/latest")
-    public ApiResponse<BlockResponse> getLatestBlockNumber() {
-        BlockResponse blockResponse = web3QueryService.getLatestBlockNumber();
-        return ApiResponse.success(blockResponse);
+    public Mono<ApiResponse<BlockResponse>> getLatestBlockNumber() {
+        return web3QueryService.getLatestBlockNumber()
+                .map(ApiResponse::success);
     }
 }
