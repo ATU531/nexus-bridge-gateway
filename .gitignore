@@ -27,3 +27,5 @@ target/classes/application.yml
 start.bat
 mvn21.bat
 target/maven-status/maven-compiler-plugin/compile/default-compile/inputFiles.lst
+api-key.txt
+.gitignore

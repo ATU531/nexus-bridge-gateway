@@ -10,3 +10,4 @@ public class BridgeGatewayApplication {
         SpringApplication.run(BridgeGatewayApplication.class, args);
     }
 }
+   
