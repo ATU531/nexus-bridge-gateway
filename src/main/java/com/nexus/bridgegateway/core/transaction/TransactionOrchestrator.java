@@ -1,9 +1,8 @@
 package com.nexus.bridgegateway.core.transaction;
 
+import com.nexus.bridgegateway.core.query.Web3jRegistry;
 import org.springframework.stereotype.Service;
-import org.web3j.protocol.Web3j;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 
 import java.math.BigInteger;
 
@@ -14,25 +13,32 @@ import java.math.BigInteger;
 @Service
 public class TransactionOrchestrator {
 
-    private final Web3j web3j;
+    private final Web3jRegistry web3jRegistry;
     private final NonceManager nonceManager;
     private final GasStrategy gasStrategy;
 
-    public TransactionOrchestrator(Web3j web3j, NonceManager nonceManager, GasStrategy gasStrategy) {
-        this.web3j = web3j;
+    public TransactionOrchestrator(Web3jRegistry web3jRegistry, NonceManager nonceManager, GasStrategy gasStrategy) {
+        this.web3jRegistry = web3jRegistry;
         this.nonceManager = nonceManager;
         this.gasStrategy = gasStrategy;
     }
 
     /**
      * 构建并发送交易（托管模式）
+     *
+     * @param chain  链标识
+     * @param from   发送地址
+     * @param to     接收地址
+     * @param value  转账金额
+     * @param data   交易数据
+     * @return 交易哈希
      */
-    public Mono<String> sendTransactionWithCustody(String from, String to, BigInteger value, String data) {
+    public Mono<String> sendTransactionWithCustody(String chain, String from, String to, BigInteger value, String data) {
         // 获取 Nonce
         return nonceManager.getNextNonce(from)
                 .flatMap(nonce ->
                         // 获取 Gas 价格
-                        gasStrategy.getGasPrice(GasStrategy.StrategyType.STANDARD)
+                        gasStrategy.getGasPrice(chain, GasStrategy.StrategyType.STANDARD)
                                 .map(gasPrice -> {
                                     // TODO: 使用托管私钥签名交易
                                     // TODO: 发送交易到链上
@@ -43,11 +49,17 @@ public class TransactionOrchestrator {
 
     /**
      * 构建交易（非托管模式，返回待签名交易）
+     *
+     * @param chain 链标识
+     * @param from  发送地址
+     * @param to    接收地址
+     * @param value 转账金额
+     * @return 未签名交易数据
      */
-    public Mono<String> buildUnsignedTransaction(String from, String to, BigInteger value) {
+    public Mono<String> buildUnsignedTransaction(String chain, String from, String to, BigInteger value) {
         return nonceManager.getNextNonce(from)
                 .flatMap(nonce ->
-                        gasStrategy.getGasPrice(GasStrategy.StrategyType.STANDARD)
+                        gasStrategy.getGasPrice(chain, GasStrategy.StrategyType.STANDARD)
                                 .map(gasPrice -> {
                                     // TODO: 构建未签名交易
                                     return "unsignedTxData";
@@ -57,21 +69,17 @@ public class TransactionOrchestrator {
 
     /**
      * 提交已签名交易
+     *
+     * @param chain         链标识
+     * @param signedTxData  已签名交易数据
+     * @return 交易哈希
      */
-    public Mono<String> submitSignedTransaction(String signedTx) {
+    public Mono<String> submitSignedTransaction(String chain, String signedTxData) {
         return Mono.fromCallable(() -> {
-            // TODO: 发送已签名交易到链上
+            // 从多链注册中心获取对应链的 Web3j 客户端
+            var web3j = web3jRegistry.getClient(chain);
+            // TODO: 发送已签名交易
             return "0x...txHash";
-        }).subscribeOn(Schedulers.boundedElastic());
-    }
-
-    /**
-     * 查询交易状态
-     */
-    public Mono<TransactionStatus> getTransactionStatus(String txHash) {
-        return Mono.fromCallable(() -> {
-            // TODO: 查询交易收据
-            return TransactionStatus.PENDING;
-        }).subscribeOn(Schedulers.boundedElastic());
+        }).subscribeOn(reactor.core.scheduler.Schedulers.boundedElastic());
     }
 }

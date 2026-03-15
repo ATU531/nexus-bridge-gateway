@@ -1,11 +1,10 @@
 package com.nexus.bridgegateway.core.event;
 
+import com.nexus.bridgegateway.core.query.Web3jRegistry;
 import org.springframework.stereotype.Service;
-import org.web3j.protocol.Web3j;
 import org.web3j.protocol.core.methods.response.Log;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 
 import java.util.List;
 
@@ -16,18 +15,25 @@ import java.util.List;
 @Service
 public class EventListener {
 
-    private final Web3j web3j;
+    private final Web3jRegistry web3jRegistry;
     private final EventNotifierComposite eventNotifier;
 
-    public EventListener(Web3j web3j, EventNotifierComposite eventNotifier) {
-        this.web3j = web3j;
+    public EventListener(Web3jRegistry web3jRegistry, EventNotifierComposite eventNotifier) {
+        this.web3jRegistry = web3jRegistry;
         this.eventNotifier = eventNotifier;
     }
 
     /**
      * 订阅合约事件
+     *
+     * @param chain            链标识
+     * @param contractAddress  合约地址
+     * @param eventSignature   事件签名
+     * @return Mono<Void>
      */
-    public Mono<Void> subscribeEvent(String contractAddress, String eventSignature) {
+    public Mono<Void> subscribeEvent(String chain, String contractAddress, String eventSignature) {
+        // 从多链注册中心获取对应链的 Web3j 客户端
+        var web3j = web3jRegistry.getClient(chain);
         // TODO: 使用 Web3j 订阅合约事件
         // TODO: 解析事件参数
         // TODO: 调用 EventNotifier 通知业务方
