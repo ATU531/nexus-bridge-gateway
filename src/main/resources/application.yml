@@ -36,9 +36,15 @@ logging:
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
 
-web3:
-  rpc-url: https://rpc.ankr.com/eth
-  timeout: 10000
-  backup-rpc-urls:
-    - https://eth.llamarpc.com
-    - https://cloudflare-eth.com
+nexus:
+  web3:
+    chains:
+      eth:
+        rpc-url: https://cloudflare-eth.com
+        symbol: ETH
+      bsc:
+        rpc-url: https://bsc-dataseed.binance.org/
+        symbol: BNB
+      polygon:
+        rpc-url: https://polygon-rpc.com/
+        symbol: MATIC

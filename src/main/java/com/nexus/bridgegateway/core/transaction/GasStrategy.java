@@ -1,7 +1,7 @@
 package com.nexus.bridgegateway.core.transaction;
 
+import com.nexus.bridgegateway.core.query.Web3jRegistry;
 import org.springframework.stereotype.Service;
-import org.web3j.protocol.Web3j;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
@@ -14,17 +14,23 @@ import java.math.BigInteger;
 @Service
 public class GasStrategy {
 
-    private final Web3j web3j;
+    private final Web3jRegistry web3jRegistry;
 
-    public GasStrategy(Web3j web3j) {
-        this.web3j = web3j;
+    public GasStrategy(Web3jRegistry web3jRegistry) {
+        this.web3jRegistry = web3jRegistry;
     }
 
     /**
-     * 获取 Gas Price
+     * 获取指定链的 Gas Price
+     *
+     * @param chain 链标识
+     * @param type  策略类型
+     * @return Gas Price
      */
-    public Mono<BigInteger> getGasPrice(StrategyType type) {
+    public Mono<BigInteger> getGasPrice(String chain, StrategyType type) {
         return Mono.fromCallable(() -> {
+            // 从多链注册中心获取对应链的 Web3j 客户端
+            var web3j = web3jRegistry.getClient(chain);
             BigInteger baseGasPrice = web3j.ethGasPrice().send().getGasPrice();
 
             return switch (type) {
