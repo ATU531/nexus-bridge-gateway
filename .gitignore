@@ -28,4 +28,9 @@ start.bat
 mvn21.bat
 target/maven-status/maven-compiler-plugin/compile/default-compile/inputFiles.lst
 api-key.txt
-.gitignore
+target/*
+target/maven-status/maven-compiler-plugin/compile/default-compile/createdFiles.lst
+docs/requirements.md
+target/classes/lua/nonce_allocate.lua
+docs/design/database_design.md
+

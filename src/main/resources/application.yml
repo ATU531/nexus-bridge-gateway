@@ -1,8 +1,38 @@
 spring:
   application:
     name: nexus-bridge-gateway
-  webflux:
-    base-path: /api
+  cloud:
+    gateway:
+      routes:
+        # 用户身份映射查询路由 - 通过 X-User-ID 查询余额
+        - id: user_balance_by_id_route
+          uri: forward:///internal/api/v1/user
+          predicates:
+            - Path=/api/v1/user/{chain}/balance
+            - Method=GET
+          filters:
+            - SetPath=/internal/api/v1/user/{chain}/balance
+        # 用户地址查询路由 - 通过钱包地址查询余额
+        - id: user_balance_by_address_route
+          uri: forward:///internal/api/v1/user
+          predicates:
+            - Path=/api/v1/user/{chain}/balance/{address}
+            - Method=GET
+          filters:
+            - SetPath=/internal/api/v1/user/{chain}/balance/{address}
+        # 最新区块号查询路由
+        - id: user_block_latest_route
+          uri: forward:///internal/api/v1/user
+          predicates:
+            - Path=/api/v1/user/{chain}/block/latest
+            - Method=GET
+          filters:
+            - SetPath=/internal/api/v1/user/{chain}/block/latest
+  datasource:
+    url: jdbc:mysql://127.0.0.1:3306/nexus_bridge?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+    username: root
+    password: 1234
+    driver-class-name: com.mysql.cj.jdbc.Driver
   data:
     redis:
       host: localhost
@@ -37,10 +67,13 @@ logging:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
 
 nexus:
+  jwt:
+    secret: a-very-secure-and-long-secret-key-for-nexus-bridge-gateway-2026
+    expiration-ms: 86400000
   web3:
     chains:
       eth:
-        rpc-url: https://cloudflare-eth.com
+        rpc-url: https://rpc.ankr.com/eth/
         symbol: ETH
       bsc:
         rpc-url: https://bsc-dataseed.binance.org/
