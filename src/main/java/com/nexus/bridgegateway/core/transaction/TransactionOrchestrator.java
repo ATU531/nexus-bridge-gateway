@@ -1,6 +1,7 @@
 package com.nexus.bridgegateway.core.transaction;
 
 import com.nexus.bridgegateway.core.query.Web3jRegistry;
+import com.nexus.bridgegateway.core.tx.ReactiveNonceManager;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
@@ -14,10 +15,10 @@ import java.math.BigInteger;
 public class TransactionOrchestrator {
 
     private final Web3jRegistry web3jRegistry;
-    private final NonceManager nonceManager;
+    private final ReactiveNonceManager nonceManager;
     private final GasStrategy gasStrategy;
 
-    public TransactionOrchestrator(Web3jRegistry web3jRegistry, NonceManager nonceManager, GasStrategy gasStrategy) {
+    public TransactionOrchestrator(Web3jRegistry web3jRegistry, ReactiveNonceManager nonceManager, GasStrategy gasStrategy) {
         this.web3jRegistry = web3jRegistry;
         this.nonceManager = nonceManager;
         this.gasStrategy = gasStrategy;
@@ -35,7 +36,7 @@ public class TransactionOrchestrator {
      */
     public Mono<String> sendTransactionWithCustody(String chain, String from, String to, BigInteger value, String data) {
         // 获取 Nonce
-        return nonceManager.getNextNonce(from)
+        return nonceManager.allocateNonce(chain, from)
                 .flatMap(nonce ->
                         // 获取 Gas 价格
                         gasStrategy.getGasPrice(chain, GasStrategy.StrategyType.STANDARD)
@@ -57,7 +58,7 @@ public class TransactionOrchestrator {
      * @return 未签名交易数据
      */
     public Mono<String> buildUnsignedTransaction(String chain, String from, String to, BigInteger value) {
-        return nonceManager.getNextNonce(from)
+        return nonceManager.allocateNonce(chain, from)
                 .flatMap(nonce ->
                         gasStrategy.getGasPrice(chain, GasStrategy.StrategyType.STANDARD)
                                 .map(gasPrice -> {
