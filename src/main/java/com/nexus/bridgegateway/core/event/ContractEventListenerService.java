@@ -93,11 +93,18 @@ public class ContractEventListenerService {
      * 订阅指定链上合约的所有事件，并将事件分发给所有通知器。
      * 
      * 【执行流程】：
-     * 1. 获取对应链的 Web3j 客户端
-     * 2. 构建事件过滤器（指定合约地址）
-     * 3. 使用 ethLogFlowable 订阅日志
-     * 4. 将 RxJava Flowable 转换为 Reactor Flux
-     * 5. 解析日志并分发给通知器
+     * 1. 生成唯一订阅标识（防重校验）
+     * 2. 获取对应链的 Web3j 客户端
+     * 3. 构建事件过滤器（指定合约地址）
+     * 4. 使用 ethLogFlowable 订阅日志
+     * 5. 将 RxJava Flowable 转换为 Reactor Flux
+     * 6. 解析日志并分发给通知器
+     * 
+     * 【防重订阅机制】：
+     * 使用 ConcurrentHashMap 存储活跃订阅，防止重复订阅导致：
+     * - RPC 资源浪费（每个订阅都会建立长连接）
+     * - 内存泄漏（订阅句柄无法释放）
+     * - 事件重复处理
      * 
      * 【架构提示】：
      * Web3j 的 ethLogFlowable 返回 RxJava 的 Flowable，
@@ -109,13 +116,15 @@ public class ContractEventListenerService {
      * @return Flux<TransactionEvent> 事件流
      */
     public Flux<TransactionEvent> subscribeToContractEvent(String chain, String contractAddress) {
-        String subscriptionKey = chain + ":" + contractAddress;
-        log.info("[EventListener] 开始订阅合约事件, chain={}, contract={}", chain, contractAddress);
+        // 【防重校验】生成唯一订阅标识
+        // 使用 toLowerCase() 确保地址大小写不敏感
+        String subscriptionKey = chain + ":" + contractAddress.toLowerCase();
+        log.info("[EventListener] 开始订阅合约事件, chain={}, contract={}, key={}", chain, contractAddress, subscriptionKey);
 
-        // 检查是否已存在订阅
+        // 【关键】检查是否已存在订阅，防止重复订阅
         if (activeSubscriptions.containsKey(subscriptionKey)) {
-            log.warn("[EventListener] 订阅已存在, key={}", subscriptionKey);
-            return Flux.error(new IllegalStateException("Subscription already exists: " + subscriptionKey));
+            log.info("[EventListener] 订阅已存在，跳过重复订阅, key={}", subscriptionKey);
+            return Flux.empty();
         }
 
         // 获取对应链的 Web3j 客户端
@@ -159,8 +168,11 @@ public class ContractEventListenerService {
                                     }
                             );
 
-                    // 记录活跃订阅
+                    // 【关键】保存订阅句柄到注册表
+                    // 使用 ConcurrentHashMap 保证线程安全
                     activeSubscriptions.put(subscriptionKey, subscription);
+                    log.info("[EventListener] 订阅已注册, key={}, 当前活跃订阅数={}", 
+                            subscriptionKey, activeSubscriptions.size());
 
                     // 注册取消回调
                     emitter.onDispose(() -> {
@@ -299,15 +311,27 @@ public class ContractEventListenerService {
      * @param contractAddress 合约地址
      */
     public void unsubscribe(String chain, String contractAddress) {
-        String subscriptionKey = chain + ":" + contractAddress;
+        String subscriptionKey = chain + ":" + contractAddress.toLowerCase();
         Disposable subscription = activeSubscriptions.remove(subscriptionKey);
         
         if (subscription != null && !subscription.isDisposed()) {
             subscription.dispose();
-            log.info("[EventListener] 已取消订阅, key={}", subscriptionKey);
+            log.info("[EventListener] 已取消订阅, key={}, 剩余活跃订阅数={}", subscriptionKey, activeSubscriptions.size());
         } else {
             log.warn("[EventListener] 订阅不存在, key={}", subscriptionKey);
         }
+    }
+
+    /**
+     * 检查订阅是否存在
+     * 
+     * @param chain           链标识
+     * @param contractAddress 合约地址
+     * @return 是否存在订阅
+     */
+    public boolean isSubscribed(String chain, String contractAddress) {
+        String subscriptionKey = chain + ":" + contractAddress.toLowerCase();
+        return activeSubscriptions.containsKey(subscriptionKey);
     }
 
     /**
