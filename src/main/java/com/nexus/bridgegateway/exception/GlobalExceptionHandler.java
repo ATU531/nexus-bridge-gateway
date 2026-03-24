@@ -15,6 +15,13 @@ public class GlobalExceptionHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+    @ExceptionHandler(UnauthorizedException.class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    public ApiResponse<Void> handleUnauthorizedException(UnauthorizedException e) {
+        logger.error("Unauthorized: {}", e.getMessage(), e);
+        return ApiResponse.error(401, e.getMessage());
+    }
+
     @ExceptionHandler(ClientConnectionException.class)
     @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
     public ApiResponse<Void> handleClientConnectionException(ClientConnectionException e) {
